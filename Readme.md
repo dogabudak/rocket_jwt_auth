@@ -12,5 +12,5 @@ Add the following dependency to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-rocket_jwt_auth = "0.0.2"
+rocket_jwt_auth = "0.0.3"
 ```
