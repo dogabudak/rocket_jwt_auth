@@ -1,4 +1,4 @@
-# Rocker jwt auth middleware
+# Rocket jwt auth middleware
 
 ![Rust Version](https://img.shields.io/badge/rust-1.65+-green.svg)
 ![WebSocket Version](https://img.shields.io/badge/websocket-0.0.1-blue.svg)
