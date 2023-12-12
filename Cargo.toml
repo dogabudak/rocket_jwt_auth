@@ -1,6 +1,6 @@
 [package]
 name = "rocket_jwt_auth"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MIT"
 description = "JWT header authentication for Rocket"
