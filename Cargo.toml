@@ -1,10 +1,18 @@
 [package]
 name = "rocket_jwt_auth"
-version = "0.0.3"
-edition = "2021"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
 license = "MIT"
-description = "JWT header authentication for Rocket"
-keywords = ["rocket", "jwt"]
+description = "JWT Bearer token authentication guard for Rocket"
+repository = "https://github.com/piarcha/rocket_jwt_auth"
+keywords = ["rocket", "jwt", "auth", "bearer", "middleware"]
+categories = ["authentication", "web-programming"]
 
 [dependencies]
-rocket = "0.4.7"
+rocket = "0.5.1"
+jsonwebtoken = "9.3"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros"] }
