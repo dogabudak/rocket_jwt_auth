@@ -41,24 +41,37 @@ impl fmt::Display for TokenError {
 
 impl std::error::Error for TokenError {}
 
+/// Returns early from `from_request` with an `Outcome::Error`.
+///
+/// `fail!(Unauthorized, MissingHeader)` expands to
+/// `return request::Outcome::Error((Status::Unauthorized, TokenError::MissingHeader))`.
+/// A function could not do this: only a macro can `return` from its caller.
+macro_rules! fail {
+    // Tuple variant: fail!(Unauthorized, InvalidToken(e.to_string()))
+    ($status:ident, $variant:ident ( $($arg:expr),* )) => {
+        return request::Outcome::Error((Status::$status, TokenError::$variant($($arg),*)))
+    };
+    // Unit variant: fail!(Unauthorized, MissingHeader)
+    ($status:ident, $variant:ident) => {
+        return request::Outcome::Error((Status::$status, TokenError::$variant))
+    };
+}
+
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Token {
     type Error = TokenError;
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-        let header = match request.headers().get_one("Authorization") {
-            Some(h) => h,
-            None => return request::Outcome::Error((Status::Unauthorized, TokenError::MissingHeader)),
+        let Some(header) = request.headers().get_one("Authorization") else {
+            fail!(Unauthorized, MissingHeader);
         };
 
-        let token_str = match header.strip_prefix("Bearer ") {
-            Some(t) => t,
-            None => return request::Outcome::Error((Status::Unauthorized, TokenError::InvalidFormat)),
+        let Some(token_str) = header.strip_prefix("Bearer ") else {
+            fail!(Unauthorized, InvalidFormat);
         };
 
-        let secret = match std::env::var("JWT_SECRET") {
-            Ok(s) => s,
-            Err(_) => return request::Outcome::Error((Status::InternalServerError, TokenError::MissingSecret)),
+        let Ok(secret) = std::env::var("JWT_SECRET") else {
+            fail!(InternalServerError, MissingSecret);
         };
 
         let mut validation = Validation::new(Algorithm::HS256);
@@ -66,13 +79,10 @@ impl<'r> FromRequest<'r> for Token {
 
         match decode::<Token>(token_str, &DecodingKey::from_secret(secret.as_bytes()), &validation) {
             Ok(data) => request::Outcome::Success(data.claims),
-            Err(e) => {
-                if e.kind() == &jsonwebtoken::errors::ErrorKind::ExpiredSignature {
-                    request::Outcome::Error((Status::Unauthorized, TokenError::Expired))
-                } else {
-                    request::Outcome::Error((Status::Unauthorized, TokenError::InvalidToken(e.to_string())))
-                }
+            Err(e) if e.kind() == &jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+                fail!(Unauthorized, Expired)
             }
+            Err(e) => fail!(Unauthorized, InvalidToken(e.to_string())),
         }
     }
 }
